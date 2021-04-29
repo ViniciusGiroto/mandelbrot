@@ -3,13 +3,26 @@
   <head>
     <meta charset="utf-8" />
     <title>Mandelbrot</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { display: flex; flex-direction: column; height: 100vh; background-color: black; color: white; font-family: Roboto, sans-serif; margin: 0; }
+      body > div:first-child { padding: .5em; margin-bottom: 1em; z-index: 1; }
+      body > div:nth-child(2n) { flex-grow: 1; position: relative; }
+      canvas { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+      input { margin: 0; }
+    </style>
   </head>
-  <body style="background-color: black; margin: 0; overflow: hidden; align-content: center;">
+  <body>
     <div>
-      <input id="iterations" type="range" min="1" max="100" step="1" value="10" style="width: 100%;" />
+      <label for="iterations">Max iterations: </label><input id="iterations" type="number" min="1" step="1" value="100" />
     </div>
-    <canvas id="canvas" width="128" height="128"></canvas>
+    <div>
+      <canvas id="canvas" width="128" height="128"></canvas>
+    </div>
     <script>
+      const iterations = document.getElementById("iterations");
+      const canvas = document.getElementById("canvas");
+
       let memory = new WebAssembly.Memory({ initial: 0, maximum: 100 });
       let ctx = canvas.getContext("2d");
       let wasm, pixels, image;
@@ -34,20 +47,20 @@
         image = new ImageData(pixels, width, height);
       }
 
-      resizecanvas(600, 600);
+      function draw() {
+        wasm.instance.exports.main(canvas.width, canvas.height, iterations.valueAsNumber);
+        ctx.putImageData(image, 0, 0);
+      }
 
       WebAssembly.instantiateStreaming(fetch('./mandelbrot.wasm'), {
         env: { memory }
       }).then(obj => {
         wasm = obj;
-        wasm.instance.exports.main(canvas.width, canvas.height, iterations.valueAsNumber);
-        ctx.putImageData(image, 0, 0);
+        iterations.onchange = draw;
+        resizecanvas(600, 600);
+        draw();
       });
 
-      iterations.onchange = function() {
-        wasm.instance.exports.main(canvas.width, canvas.height, parseInt(this.value));
-        ctx.putImageData(image, 0, 0);
-      }
     </script>
   </body>
 </html>
