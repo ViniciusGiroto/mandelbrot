@@ -17,67 +17,13 @@
     <div class="vars">
       <label>Max iterations: <input id="iterations" type="number" min="1" step="1" value="100" /></label>
       <label>Julia Set: <input id="julia" type="checkbox" value="false" /></label>
-      <form id="c" style="display: none;">
+      <form id="c">
         <label>c = <input id="real" type="number" step="0.01" value="-0.4" /></label><label> + <input id="imaginary" type="number" step="0.01" value="0.6" />i</label>
       </form>
     </div>
     <div class="canvas">
       <canvas id="canvas" width="128" height="128"></canvas>
     </div>
-    <script>
-      const iterations = document.getElementById("iterations");
-      const canvas = document.getElementById("canvas");
-      const julia = document.getElementById("julia");
-      const c = document.getElementById("c");
-
-      let memory = new WebAssembly.Memory({ initial: 0, maximum: 100 });
-      let ctx = canvas.getContext("2d");
-      let wasm, pixels, image;
-      let totalPages = 0;
-
-      function calcpages(width, height) {
-        return (((4 * width * height) - 1) >> 16) + 1;
-      }
-
-      function resizecanvas(width, height) {
-        const pages = calcpages(width, height);
-        console.log("Resizing canvas, new number of pages: %i", pages);
-        if (pages > totalPages) {
-          memory.grow(pages - totalPages);
-          totalPages = pages;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        pixels = new Uint8ClampedArray(memory.buffer, 0, 4*width*height);
-        image = new ImageData(pixels, width, height);
-      }
-
-      function draw() {
-        if (julia.checked) {
-          wasm.instance.exports.julia(canvas.width, canvas.height, iterations.valueAsNumber, c.real.valueAsNumber, c.imaginary.valueAsNumber);
-        } else {
-          wasm.instance.exports.mandelbrot(canvas.width, canvas.height, iterations.valueAsNumber);
-        }
-        ctx.putImageData(image, 0, 0);
-      }
-
-      WebAssembly.instantiateStreaming(fetch('./mandelbrot.wasm'), {
-        env: { memory }
-      }).then(obj => {
-        wasm = obj;
-        iterations.onchange = draw;
-        c.onchange = draw;
-        julia.onchange = function() {
-          c.style.display = this.checked ? 'block' : 'none';
-          draw();
-        };
-        resizecanvas(600, 600);
-        draw();
-      });
-
-      c.style.display = julia.checked ? 'block' : 'none';
-    </script>
+    <script src="./main.js"></script>
   </body>
 </html>
