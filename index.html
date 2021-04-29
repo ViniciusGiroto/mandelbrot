@@ -6,22 +6,29 @@
     <style>
       * { box-sizing: border-box; }
       body { display: flex; flex-direction: column; height: 100vh; background-color: black; color: white; font-family: Roboto, sans-serif; margin: 0; }
-      body > div:first-child { padding: .5em; margin-bottom: 1em; z-index: 1; }
-      body > div:nth-child(2n) { flex-grow: 1; position: relative; }
+      div.vars { padding: .5em; margin-bottom: 1em; z-index: 1; }
+      div.vars > label { display: block; padding-bottom: .5em; }
+      div.canvas { flex-grow: 1; position: relative; }
       canvas { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
       input { margin: 0; }
     </style>
   </head>
   <body>
-    <div>
-      <label for="iterations">Max iterations: </label><input id="iterations" type="number" min="1" step="1" value="100" />
+    <div class="vars">
+      <label>Max iterations: <input id="iterations" type="number" min="1" step="1" value="100" /></label>
+      <label>Julia Set: <input id="julia" type="checkbox" value="false" /></label>
+      <form id="c" style="display: none;">
+        <label>c = <input id="real" type="number" step="0.01" value="-0.4" /></label><label> + <input id="imaginary" type="number" step="0.01" value="0.6" />i</label>
+      </form>
     </div>
-    <div>
+    <div class="canvas">
       <canvas id="canvas" width="128" height="128"></canvas>
     </div>
     <script>
       const iterations = document.getElementById("iterations");
       const canvas = document.getElementById("canvas");
+      const julia = document.getElementById("julia");
+      const c = document.getElementById("c");
 
       let memory = new WebAssembly.Memory({ initial: 0, maximum: 100 });
       let ctx = canvas.getContext("2d");
@@ -48,7 +55,11 @@
       }
 
       function draw() {
-        wasm.instance.exports.main(canvas.width, canvas.height, iterations.valueAsNumber);
+        if (julia.checked) {
+          wasm.instance.exports.julia(canvas.width, canvas.height, iterations.valueAsNumber, c.real.valueAsNumber, c.imaginary.valueAsNumber);
+        } else {
+          wasm.instance.exports.mandelbrot(canvas.width, canvas.height, iterations.valueAsNumber);
+        }
         ctx.putImageData(image, 0, 0);
       }
 
@@ -57,10 +68,16 @@
       }).then(obj => {
         wasm = obj;
         iterations.onchange = draw;
+        c.onchange = draw;
+        julia.onchange = function() {
+          c.style.display = this.checked ? 'block' : 'none';
+          draw();
+        };
         resizecanvas(600, 600);
         draw();
       });
 
+      c.style.display = julia.checked ? 'block' : 'none';
     </script>
   </body>
 </html>
