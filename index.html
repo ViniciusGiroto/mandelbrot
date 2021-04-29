@@ -36,7 +36,7 @@
 
       resizecanvas(600, 600);
 
-      WebAssembly.instantiateStreaming(fetch('./maldelbrot.wasm'), {
+      WebAssembly.instantiateStreaming(fetch('./mandelbrot.wasm'), {
         env: { memory }
       }).then(obj => {
         wasm = obj;
