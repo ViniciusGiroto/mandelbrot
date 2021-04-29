@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Mandelbrot</title>
+  </head>
+  <body style="background-color: black; margin: 0; overflow: hidden; align-content: center;">
+    <div>
+      <input id="iterations" type="range" min="1" max="100" step="1" value="10" style="width: 100%;" />
+    </div>
+    <canvas id="canvas" width="128" height="128"></canvas>
+    <script>
+      let memory = new WebAssembly.Memory({ initial: 0, maximum: 100 });
+      let ctx = canvas.getContext("2d");
+      let wasm, pixels, image;
+      let totalPages = 0;
+
+      function calcpages(width, height) {
+        return (((4 * width * height) - 1) >> 16) + 1;
+      }
+
+      function resizecanvas(width, height) {
+        const pages = calcpages(width, height);
+        console.log("Resizing canvas, new number of pages: %i", pages);
+        if (pages > totalPages) {
+          memory.grow(pages - totalPages);
+          totalPages = pages;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        pixels = new Uint8ClampedArray(memory.buffer, 0, 4*width*height);
+        image = new ImageData(pixels, width, height);
+      }
+
+      resizecanvas(600, 600);
+
+      WebAssembly.instantiateStreaming(fetch('./maldelbrot.wasm'), {
+        env: { memory }
+      }).then(obj => {
+        wasm = obj;
+        wasm.instance.exports.main(canvas.width, canvas.height, iterations.valueAsNumber);
+        ctx.putImageData(image, 0, 0);
+      });
+
+      iterations.onchange = function() {
+        wasm.instance.exports.main(canvas.width, canvas.height, parseInt(this.value));
+        ctx.putImageData(image, 0, 0);
+      }
+    </script>
+  </body>
+</html>
